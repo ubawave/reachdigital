@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  PAID
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  phone        String?
+  company      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  bookings    Booking[]
+  savedSpaces SavedSpace[]
+}
+
+model Listing {
+  id           String  @id
+  name         String
+  type         String
+  location     String
+  city         String
+  state        String
+  area         String
+  dimensions   String
+  price        Int // monthly rate in Naira
+  impressions  String
+  traffic      String
+  availability String
+  lighting     String
+  facing       String
+  image        String  @db.Text
+  images       Json
+  description  String  @db.Text
+  features     Json
+  lat          Float
+  lng          Float
+
+  bookings    Booking[]
+  savedSpaces SavedSpace[]
+}
+
+model Booking {
+  id           String        @id @default(cuid())
+  reference    String        @unique
+  status       BookingStatus @default(PENDING)
+  startDate    DateTime      @db.Date
+  endDate      DateTime      @db.Date
+  months       Int
+  rental       Int
+  production   Int
+  serviceFee   Int
+  total        Int
+  campaign     String?
+  artworkUrl   String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  userId    String
+  listingId String
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing  @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  payment Payment?
+
+  @@index([userId])
+  @@index([listingId])
+}
+
+model Payment {
+  id               String        @id @default(cuid())
+  bookingId        String        @unique
+  reference        String        @unique
+  paystackRef      String?       @unique
+  status           PaymentStatus @default(PENDING)
+  channel          String?
+  currency         String        @default("NGN")
+  amount           Int // kobo
+  paidAt           DateTime?
+  raw              Json?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+model SavedSpace {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId    String
+  listingId String
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String   @db.Text
+  createdAt DateTime @default(now())
+}
